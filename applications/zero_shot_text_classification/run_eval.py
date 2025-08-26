@@ -17,9 +17,8 @@ import os
 from dataclasses import dataclass, field
 
 import paddle
-from paddle.metric import Accuracy
-from sklearn.metrics import f1_score
-from utils import UTCLoss, read_local_dataset
+from sklearn.metrics import f1_score, recall_score, precision_score
+from utils import UTCLoss, read_local_dataset, compute_metrics_single_label
 
 from paddlenlp.datasets import load_dataset
 from paddlenlp.prompt import (
@@ -73,17 +72,6 @@ def main():
         prompt_model.set_state_dict(model_state)
 
     # Define the metric function.
-    def compute_metrics_single_label(eval_preds):
-        labels = paddle.to_tensor(eval_preds.label_ids, dtype="int64")
-        preds = paddle.to_tensor(eval_preds.predictions)
-        preds = paddle.nn.functional.softmax(preds, axis=-1)
-        labels = paddle.argmax(labels, axis=-1)
-        print(preds, labels)
-        metric = Accuracy()
-        correct = metric.compute(preds, labels)
-        metric.update(correct)
-        acc = metric.accumulate()
-        return {"accuracy": acc}
 
     def compute_metrics(eval_preds):
         labels = paddle.to_tensor(eval_preds.label_ids, dtype="int64")
@@ -95,8 +83,13 @@ def main():
         preds = preds > data_args.threshold
         micro_f1 = f1_score(y_pred=preds, y_true=labels, average="micro")
         macro_f1 = f1_score(y_pred=preds, y_true=labels, average="macro")
+        micro_p = precision_score(y_pred=preds, y_true=labels, average="micro")
+        macro_p = precision_score(y_pred=preds, y_true=labels, average="macro")
+        micro_r = recall_score(y_pred=preds, y_true=labels, average="micro")
+        macro_r = recall_score(y_pred=preds, y_true=labels, average="macro")
 
-        return {"micro_f1": micro_f1, "macro_f1": macro_f1}
+        return {"micro_f1": micro_f1, "macro_f1": macro_f1, "micro_p": micro_p, "macro_p": macro_p, 'micro_r': micro_r,
+                'macro_r': macro_r}
 
     trainer = PromptTrainer(
         model=prompt_model,

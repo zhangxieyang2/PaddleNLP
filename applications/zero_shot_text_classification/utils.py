@@ -20,6 +20,7 @@ import numpy as np
 import paddle
 
 from paddlenlp.utils.log import logger
+from paddle.metric import Precision, Recall
 
 
 def read_local_dataset(data_path, data_file=None, is_test=False):
@@ -56,6 +57,22 @@ def read_local_dataset(data_path, data_file=None, is_test=False):
                 std_example = {k: example[k] for k in std_keys if k in example}
                 yield std_example
     logger.warning(f"Skip {skip_count} examples.")
+
+
+def compute_metrics_single_label(eval_preds):
+    labels = paddle.to_tensor(eval_preds.label_ids, dtype="int64")
+    preds = paddle.to_tensor(eval_preds.predictions)
+    preds = paddle.nn.functional.softmax(preds, axis=-1)
+    preds = preds[:, 1]  # 目标label（失效、不可用）的概率
+    labels = paddle.argmax(labels, axis=-1)
+    p_metric = Precision()
+    p_metric.update(preds, labels)
+    p = p_metric.accumulate()
+    r_metric = Recall()
+    r_metric.update(preds, labels)
+    r = r_metric.accumulate()
+    f1 = 2 * p * r / (p + r) if p + r > 0 else 0
+    return {'precision': p, 'recall': r, 'f1': f1}
 
 
 class UTCLoss(object):

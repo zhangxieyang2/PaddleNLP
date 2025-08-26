@@ -1,0 +1,26 @@
+python -u -m paddle.distributed.launch --gpus "2" run_train.py \
+    --device gpu \
+    --logging_steps 10 \
+    --save_steps 100 \
+    --eval_steps 100 \
+    --seed 1000 \
+    --model_name_or_path ./models/utc-base \
+    --output_dir ./checkpoint/na_model_best \
+    --dataset_path ./data/na_data \
+    --max_seq_length 2048  \
+    --per_device_train_batch_size 2 \
+    --per_device_eval_batch_size 2 \
+    --gradient_accumulation_steps 8 \
+    --num_train_epochs 20 \
+    --learning_rate 1e-5 \
+    --do_train \
+    --do_eval \
+    --do_export \
+    --export_model_dir ./checkpoint/na_model_best \
+    --overwrite_output_dir \
+    --disable_tqdm True \
+    --metric_for_best_model f1 \
+    --load_best_model_at_end  True \
+    --save_total_limit 1 \
+    --save_plm \
+    --single_label True
